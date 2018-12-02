@@ -1,19 +1,15 @@
 (ns clj.day2
   (:require
-    [clojure.java.io :refer [resource]]
     [clojure.string :as s]
     [clojure.data :refer [diff]]
-    ))
+    [clj.shared :refer [split-lines-from-file]]))
 
 (defn string-to-charmap
   [s]
   (apply hash-map (flatten (map (fn [[k v]] (list k (count v))) (group-by identity (seq s))))))
 
-(defn id-checksum
-  [file]
-  (->> (resource file)
-       slurp
-       s/split-lines
+(defn id-checksum [file]
+  (->> (split-lines-from-file file)
        (map string-to-charmap)
        (map vals)
        (map (fn [char-counts] (filter #(> % 1) char-counts)))
@@ -25,8 +21,7 @@
        (apply *)
        ))
 
-(defn part-1 []
-  (id-checksum "day2.txt"))
+(defn part-1 [] (id-checksum "day2.txt"))
 
 (defn string-difference [s1 s2]
   (let [s1 (seq (char-array s1))
@@ -43,11 +38,6 @@
        count
        (= 1)))
 
-(defn ids-from-file [file]
-  (->> (resource file)
-       slurp
-       s/split-lines))
-
 (defn correct-ids [ids]
   (->> (reduce (fn [acc id]
                  (assoc acc id (filter #(differs-by-one id %) ids))
@@ -62,6 +52,13 @@
        (apply str)))
 
 (defn part-2 []
-  (-> (ids-from-file "day2.txt")
+  (-> (split-lines-from-file "day2.txt")
       correct-ids
       common-chars-in-ids))
+
+(defn time-results []
+  (println "Part 1:")
+  (time (part-1))
+  (println "Part 2:")
+  (time (part-2))
+  nil)
