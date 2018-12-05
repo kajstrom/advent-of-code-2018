@@ -51,8 +51,32 @@
 (defn part-1 []
   (count (react-all (-> (resource "day5.txt") slurp))))
 
+(defn char-range [start end]
+  (map char (range (int start) (inc (int end)))))
+
+(defn char-lower-and-upper-regex [c]
+  (re-pattern (str "[" c (Character/toUpperCase c) "]")))
+
+(defn strip-polymers [to-strip polymers]
+  (s/replace polymers (char-lower-and-upper-regex to-strip) ""))
+
+(defn stripped-polymers-by-char [polymers]
+  (let [chars (char-range \a \z)]
+    (into {} (for [c chars] [c (strip-polymers c polymers)]))))
+
+(defn react-polymers-by-chars [polymers-by-char]
+  (into {} (for [[k v] polymers-by-char] (do
+                                           (println k)
+                                           [k (count (react-all v))]))))
+
+(defn part-2 []
+  (let [polymers (-> (resource "day5.txt") slurp)
+        polymers-by-stripped-char (stripped-polymers-by-char polymers)]
+    (react-polymers-by-chars polymers-by-stripped-char)))
+
 (defn time-results []
   (time
     (do
       (println "Part 1")
-      (time (part-1)))))
+      (time (part-1))
+      (println "Part 2: 26 * Part 1 = HORROR"))))
