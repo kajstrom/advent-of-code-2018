@@ -45,10 +45,13 @@
     (if-not equal-dist
       (.indexOf distances smallest-dist))))
 
-(defn populate-grid-pos-with-coords [grid coords]
+(defn pos-dist-sum-to-coords [pos coords]
+  (apply + (map #(manhattan-distance pos %) coords)))
+
+(defn populate-grid-pos-with-coords [val-fn grid coords]
   (for [x (range 0 (count (first grid)))]
     (for [y (range 0 (count grid))]
-      (pos-closest-coords [y x] coords))))
+      (val-fn [y x] coords))))
 
 (defn remove-infinites [grid]
   (let [top-row (get grid 0)
@@ -70,10 +73,27 @@
 (defn part-1 []
   (let [coords (load-input)
         grid (grid-from-coords coords)
-        populated-grid (populate-grid-pos-with-coords grid coords)
+        populated-grid (populate-grid-pos-with-coords pos-closest-coords grid coords)
         infinites-removed-grid (remove-infinites populated-grid)
         finites-by-idx (group-by identity (filter #(not (nil? %)) (flatten infinites-removed-grid)))
         ]
     ; Bug in my code or checker, but the second highest is correct?
+    ; https://www.reddit.com/r/adventofcode/comments/a3kr4r/2018_day_6_solutions/eb76843
     (second (sort > (map count (vals finites-by-idx))))
     ))
+
+(defn part-2 []
+  (let [coords (load-input)
+        grid (grid-from-coords coords)
+        populated-grid (populate-grid-pos-with-coords pos-dist-sum-to-coords grid coords)
+        ]
+    (count (filter #(< % 10000) (flatten populated-grid)))))
+
+(defn time-results []
+  (time
+    (do
+      (println "Part 1")
+      (time (part-1))
+      (println "Part 2")
+      (time (part-2))
+      )))
