@@ -25,6 +25,7 @@
         largest (max max-y max-x)]
     (make-grid largest largest)))
 
+; Not actually used, but helps by visualizing coordinates
 (defn populate-coords-to-grid [grid coords]
   (loop [grid grid
          coords coords
@@ -38,7 +39,7 @@
   (Math/abs (+ (Math/abs (- a c)) (Math/abs (- b d)))))
 
 (defn pos-closest-coords [pos coords]
-  (let [distances (map #(manhattan-distance pos %) coords)
+  (let [distances (pmap #(manhattan-distance pos %) coords)
         smallest-dist (apply min distances)
         equal-dist (< 1 (count (filter #(= smallest-dist %) distances)))
         ]
@@ -46,7 +47,7 @@
       (.indexOf distances smallest-dist))))
 
 (defn pos-dist-sum-to-coords [pos coords]
-  (apply + (map #(manhattan-distance pos %) coords)))
+  (apply + (pmap #(manhattan-distance pos %) coords)))
 
 (defn populate-grid-pos-with-coords [val-fn grid coords]
   (for [x (range 0 (count (first grid)))]
@@ -92,8 +93,9 @@
 (defn time-results []
   (time
     (do
-      (println "Part 1")
+      (println "Part 1:")
       (time (part-1))
-      (println "Part 2")
+      (println "Part 2:")
       (time (part-2))
+      (println "Total:")
       )))
