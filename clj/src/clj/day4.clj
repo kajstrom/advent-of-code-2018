@@ -1,6 +1,6 @@
 (ns clj.day4
   (:require
-    [clj.shared :refer [split-lines-from-file parse-int map-hashmap]]
+    [clj.shared :refer [split-lines-from-file parse-int]]
     [clojure.string :as s]))
 
 (defn parse-log-entry [entry]
