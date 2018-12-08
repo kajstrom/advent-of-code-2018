@@ -152,10 +152,6 @@
   (let [steps-in-progress (map :step steps-in-progress)]
     (filter #(= (.indexOf steps-in-progress (:step %)) -1) steps-left)))
 
-; This doesn't work correctly
-; The availability of workers and steps should be the driver when steps are handled.
-; Steps should be considered completed only after a worker has finished working on it.
-
 ; Steps to do:
 ; 1) Get any completed steps in progress
 ; 2) Remove completed from in progress
