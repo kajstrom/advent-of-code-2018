@@ -1,6 +1,6 @@
 (ns clj.day3
   (:require [clojure.string :as s]
-            [clj.shared :refer [parse-int split-lines-from-file]]
+            [clj.shared :refer [parse-int split-lines-from-file not-in?]]
             [clojure.data :refer [diff]]))
 
 ;#1 @ 108,350: 22x29
@@ -53,7 +53,7 @@
 (defn part-2 [claims]
   (let [ids (map :id claims)
         overlapping (find-overlapping-claims (claimed-fabric claims))]
-    (filter #(= (.indexOf overlapping %) -1) ids)))
+    (filter #(not-in? overlapping %) ids)))
 
 (defn time-results []
   (let [claims (->> (split-lines-from-file "day3.txt") (map parse-claim-string))]

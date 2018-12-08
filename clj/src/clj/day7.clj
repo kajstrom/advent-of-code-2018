@@ -1,5 +1,5 @@
 (ns clj.day7
-  (:require [clj.shared :refer [split-lines-from-file]]))
+  (:require [clj.shared :refer [split-lines-from-file in? not-in?]]))
 
 (defn parse-requirements [step-str]
   {:step (get step-str 36) :pre-req (get step-str 5)})
@@ -25,8 +25,8 @@
     root-node
     ))
 
-(defn find-root [reqs steps]
-  (filter #(= (.indexOf (map :step reqs) %) -1) steps))
+(defn find-roots [reqs steps]
+  (filter (partial not-in? (map :step reqs)) steps))
 
 (defn next-non-traversed [next-nodes traversed]
   (let [non-traversed (filter #(= (.indexOf traversed (:step %)) -1) next-nodes)
@@ -55,7 +55,7 @@
 (defn old-part-1 []
   (let [reqs (load-requirements "day7.txt")
         steps (steps-from-requirements reqs)
-        roots (find-root reqs steps)
+        roots (find-roots reqs steps)
         tree (node-tree-from-steps reqs roots)
         ]
     (apply str @(tree-steps tree))
@@ -99,7 +99,7 @@
         steps (map (fn [step]
                {:step (first step) :pre-req (map :pre-req (last step))}
                ) (group-by :step reqs))
-        roots (find-root reqs (steps-from-requirements reqs))]
+        roots (find-roots reqs (steps-from-requirements reqs))]
     (apply str (correct-order (roots-to-steps steps roots)))))
 
 (def step-add-value (atom 60))
@@ -107,19 +107,19 @@
   (+ @step-add-value (inc (- (int (:step step)) (int \A)))))
 
 (defn find-free-workers [workers steps-in-progress]
-  (filter #(= (.indexOf (map :worker steps-in-progress) %) -1) (range 0 (count workers))))
+  (filter (partial not-in? (map :worker steps-in-progress)) (range 0 (count workers))))
 
 (defn find-completed-steps [steps-in-progress]
   (filter #(empty? (:seconds-of-work %)) steps-in-progress))
 
 (defn remove-completed-steps [completed-steps steps]
   (let [completed-steps (map :step completed-steps)]
-    (filter #(= (.indexOf completed-steps (:step %)) -1) steps)))
+    (filter #(not-in? completed-steps (:step %)) steps)))
 
 (defn remove-pre-reqs [completed-steps steps-left]
-  (let [completed-steps (map :step completed-steps)]
+  (let [not-in-completed-steps (partial not-in? (map :step completed-steps))]
     (map (fn [step]
-           (assoc step :pre-req (filter #(= (.indexOf completed-steps %) -1) (:pre-req step)))
+           (assoc step :pre-req (filter not-in-completed-steps (:pre-req step)))
            ) steps-left)))
 
 (defn find-available-steps [steps-left]
@@ -149,8 +149,8 @@
          (assoc step :seconds-of-work (rest (:seconds-of-work step))))  steps-in-progress))
 
 (defn remove-assigned-from-steps-left [steps-in-progress steps-left]
-  (let [steps-in-progress (map :step steps-in-progress)]
-    (filter #(= (.indexOf steps-in-progress (:step %)) -1) steps-left)))
+  (let [not-in-progress (partial not-in? (map :step steps-in-progress))]
+    (filter #(not-in-progress (:step %)) steps-left)))
 
 ; Steps to do:
 ; 1) Get any completed steps in progress
@@ -190,7 +190,7 @@
         steps (map (fn [step]
                      {:step (first step) :pre-req (map :pre-req (last step))}
                      ) (group-by :step reqs))
-        roots (find-root reqs (steps-from-requirements reqs))
+        roots (find-roots reqs (steps-from-requirements reqs))
         workers [[] [] [] [] []]]
     (dec (count (first (complete-steps workers (roots-to-steps steps roots)))))
     ))

@@ -1,5 +1,5 @@
 (ns clj.day6
-  (:require [clj.shared :refer [split-lines-from-file parse-int]]
+  (:require [clj.shared :refer [split-lines-from-file parse-int not-in?]]
             [clojure.string :as s]))
 
 (def test-data [
@@ -65,7 +65,7 @@
            (map (fn [cell]
                   (if (nil? cell)
                     cell
-                    (if (< -1 (.indexOf infinites cell))
+                    (if (not-in? infinites cell)
                       nil
                       cell))) row)
                 ) grid)

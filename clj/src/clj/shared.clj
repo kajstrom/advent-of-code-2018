@@ -14,3 +14,9 @@
   (->> (resource file)
        slurp
        clojure.string/split-lines))
+
+(defn in? [coll item] (some #(= item %) coll))
+
+(def not-in? (complement in?))
+
+(defn index-of [coll x] (.indexOf coll x))

@@ -8,7 +8,7 @@
   (testing "finds root step"
     (let [reqs (load-requirements "day7-example.txt")
           steps (steps-from-requirements reqs)]
-      (is (= '(\C) (find-root reqs steps))))))
+      (is (= '(\C) (find-roots reqs steps))))))
 
 (deftest next-non-traversed-test
   (testing "finds next non-traversed"
