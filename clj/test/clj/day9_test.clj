@@ -6,7 +6,6 @@
   (testing "adds marble next to"
     (let [circle (make-marble 0)
           marble (add-marble-next-to circle (make-marble 1))]
-      (is (= 2 (circle-len circle)))
       (is (= 1 (:value marble))))))
 
 (deftest remove-marble-test
@@ -16,15 +15,15 @@
       (is (= 1 (:value (remove-marble circle)))))
     (let [circle (make-marble 0)
           added (add-marble-next-to circle (make-marble 1))]
-      (is (= nil (:value (remove-marble added))))           ; This nil return might have caused problems...
+      (is (= 0 (:value (remove-marble added))))
       )))
 
 (deftest move-forward-test
   (testing "moves marble"
     (let [circle (make-marble 0)
           marble (add-marble-next-to circle (make-marble 1))]
-      (is (= 1 (:value (move-forward circle circle))))
-      (is (= 0 (:value (move-forward circle marble)))))))
+      (is (= 1 (:value (move-forward circle))))
+      (is (= 0 (:value (move-forward marble)))))))
 
 (deftest move-backwards-test
   (testing "moves marble"
@@ -34,7 +33,7 @@
                      (add-marble-next-to (make-marble 3))
                      (add-marble-next-to (make-marble 4)))]
 
-      (is (= 2 (:value (move-backwards circle marble)))))
+      (is (= 2 (:value (move-backwards marble)))))
     (let [circle (make-marble 0)
           marble (-> (add-marble-next-to circle (make-marble 1))
                      (add-marble-next-to (make-marble 2))
