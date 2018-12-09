@@ -1,7 +1,7 @@
 (ns clj.day9
   (:require [clj.shared :refer []]))
 
-(defn make-marble [value next] (transient {:value value :next nil :prev nil}))
+(defn make-marble [value] (transient {:value value :next nil :prev nil}))
 
 (defn circle-len [circle]
   (loop [marble circle
@@ -61,7 +61,7 @@
     to-add))
 
 (defn play-game [players marbles]
-  (let [circle (make-marble 0 nil)]
+  (let [circle (make-marble 0)]
     (loop [current-player 0
            current-marble circle
            marbles marbles
@@ -72,7 +72,7 @@
           ;(when (= 0 (mod (count marbles) 71588)) (println (count marbles)))
           (if-not (and (not= 0 marble-val) (= 0 (mod marble-val 23)))
             (recur (mod (inc current-player) players)
-                   (add-marble-next-to add-next-to (make-marble marble-val nil))
+                   (add-marble-next-to add-next-to (make-marble marble-val))
                    (rest marbles)
                    score)
             (let [marble-to-remove (move-backwards circle current-marble)
