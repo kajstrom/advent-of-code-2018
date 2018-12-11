@@ -30,6 +30,31 @@
         ))
     (persistent! powers)))
 
+(defn calculate-all-total-powers-from [grid [top-x top-y]]
+  (let [x-axis (range top-x 301)
+        sums (transient [])]
+    (doseq [to-x x-axis]
+      (let [y-axis (range top-y (mod (+ top-y (inc (- to-x top-x))) 301))
+            values (transient [])]
+        (doseq [x (range top-x (inc to-x))]
+          (doseq [y y-axis]
+            (conj! values (get-in grid [y x]))))
+        (conj! sums [(str top-x "," top-y "," (count y-axis)) (apply + (persistent! values))])))
+    (reduce (fn [carry powers]
+              (if (> (last carry) (last powers))
+                carry
+                powers)) (persistent! sums))))
+
+(defn calculate-all-total-powers [grid]
+  (let [powers (transient [])]
+    (doseq [y (range 1 301)]
+      (println y)
+      (doseq [x (range 1 301)]
+        (conj! powers (future (calculate-all-total-powers-from grid [x y])))
+        ))
+    (map deref (persistent! powers))
+    ))
+
 (defn part-1 []
   (let [grid (make-grid serial-number)
         powers (calculate-total-powers grid)]
@@ -37,4 +62,10 @@
               (if (> (last carry) (last powers))
                 carry
                 powers)) powers)
+    ))
+
+(defn part-2 []
+  (let [grid (make-grid serial-number)
+        powers (calculate-all-total-powers grid)]
+    (reduce (fn [carry powers] (if (> (last carry) (last powers)) carry powers)) powers)
     ))
