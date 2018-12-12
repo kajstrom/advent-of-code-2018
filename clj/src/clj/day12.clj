@@ -30,22 +30,20 @@
 (defn parse-input [string]
   (vec (concat [nil nil nil] (parse-plant-string string))))
 
-(defn next-generation [plants combinations]
-  (let [until (if (= [nil nil] (take-last 2 plants)) (count plants) (+ 2 (count plants) ))]
-    (loop [idx 0
-           next []]
-      (if-not (= idx until)
-        (let [pots [(get plants (- idx 2)) (get plants (dec idx)) (get plants idx) (get plants (inc idx)) (get plants (+ idx 2))]]
-          ;(println idx)
-          ;(println pots (in? combinations pots))
-          (recur (inc idx) (conj next (if (in? combinations pots) \# nil))))
-        next))))
+(defn pot-next-status [combinations plants idx]
+  (let [pots [(get plants (- idx 2)) (get plants (dec idx)) (get plants idx) (get plants (inc idx)) (get plants (+ idx 2))]]
+    (if (in? combinations pots) \# nil)))
 
-(defn live-generations [count initial combinations]
-  (loop [gen-cnt count
+(defn next-generation [plants combinations]
+  (let [until (if (= [nil nil] (take-last 2 plants)) (count plants) (+ 2 (count plants) ))
+        indexes (range 0 (inc until))]
+    (doall (vec (map #(pot-next-status combinations plants %) indexes)))))
+
+(defn live-generations [gen-cnt initial combinations]
+  (loop [gen-counter 0
          generation initial]
-    (if-not (= 0 gen-cnt)
-      (recur (dec gen-cnt) (next-generation generation combinations))
+    (if-not (= gen-counter gen-cnt)
+      (recur (inc gen-counter) (next-generation generation combinations))
       generation)))
 
 (defn sum-generation [offset generation]
@@ -59,3 +57,29 @@
   (let [input-generation (parse-input "#...#####.#..##...##...#.##.#.##.###..##.##.#.#..#...###..####.#.....#..##..#.##......#####..####...")
         gen20 (live-generations 20 input-generation (combinations-from-file))]
     (sum-generation index-offset gen20)))
+
+(defn live-generations-all-sums [offset gen-cnt initial combinations]
+  (loop [gen-counter 0
+         generation initial
+         sums []]
+    (if-not (= gen-counter gen-cnt)
+      (let [next (next-generation generation combinations)]
+        (recur (inc gen-counter) next (conj sums (sum-generation offset next))))
+      sums)))
+
+(defn part-2 []
+  (let [input-generation (parse-input "#...#####.#..##...##...#.##.#.##.###..##.##.#.#..#...###..####.#.....#..##..#.##......#####..####...")
+        combinations (combinations-from-file)
+        all-sums (live-generations-all-sums index-offset 150 input-generation combinations)
+        last-2 (take-last 2 all-sums)
+        diff (- (last last-2) (first last-2))]
+    (+ (* diff (- 50000000000 150)) (last last-2))))
+
+(defn time-results []
+  (time
+    (do
+      (println "Part 1")
+      (time (part-1))
+      (println "Part 2")
+      (time (part-2))
+      )))
