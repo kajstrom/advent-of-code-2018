@@ -20,3 +20,9 @@
 (def not-in? (complement in?))
 
 (defn index-of [coll x] (.indexOf coll x))
+
+(defn manhattan-distance [[a b] [c d]]
+  (Math/abs (+ (Math/abs (- a c)) (Math/abs (- b d)))))
+
+(defn flatten-1 [coll]
+  (mapcat identity coll))
