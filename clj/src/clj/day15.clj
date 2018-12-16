@@ -1,6 +1,11 @@
 (ns clj.day15
   (:require [clj.shared :refer :all]))
 
+(def logging-enabled (atom true))
+(defn log-message [m & args]
+  (if @logging-enabled
+    (apply println (conj args m ))))
+
 (def unit-id-counter (atom 0))
 (defn make-unit [type x y]
   (let [id @unit-id-counter]
@@ -87,7 +92,7 @@
 
 (defn available-in-range-paths [unit units cavern-map]
   (let [target-type (enemy-type unit)
-        targets (filter #(= target-type (:type %))  units)
+        targets (filter #(= target-type (:type %)) units)
         cells-in-range-of-targets (flatten-1 (map #(find-free-cells-next-to [(:y %) (:x %)] cavern-map) targets))
         cells-next-to-unit (find-free-cells-next-to [(:y unit) (:x unit)] cavern-map)]
     ;(println cells-in-range-of-targets)
@@ -123,7 +128,7 @@
 (defn shortest-path [paths]
   ;(println paths)
   (let [shortest-length (apply min (pmap path-length paths))]
-    (println shortest-length)
+    ;(println shortest-length)
     (->> (filter #(= shortest-length (-> % path-length)) paths)
          first)))
 
@@ -166,51 +171,59 @@
 (defn sort-units-by-reading-order [units]
   (sort-by (juxt :y :x) units))
 
+(defn has-alive-enemies [unit units]
+  (let [type (enemy-type unit)]
+    (not (empty? (filter #(and (not-dead? %) (= type (:type %))) units)))))
 
 (defn play-round [units cavern-map]
   (loop [unit (first units)
          remaining-units (rest units)
          not-dead units
-         cavern-map cavern-map
-         latest-was-a-death false]
-    (println "Remaining" (count remaining-units))
+         cavern-map cavern-map]
+    (log-message "Remaining" (count remaining-units))
+    (log-message "Active unit" (:id unit))
     (if-not (nil? unit)
-      (let [to-attack (enemy-to-attack unit cavern-map)]
-        (println "Can attack" to-attack)
-        (if-not (nil? to-attack)
-          (let [to-attack (attack unit to-attack)
-                remaining-not-dead (filter not-dead? remaining-units)
-                not-dead-units (filter not-dead? not-dead)]
-            (println "Attacked" (:id to-attack) "HP" (:hp to-attack))
-            (if (dead? to-attack)
-              (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units (assoc-in cavern-map [(:y to-attack) (:x to-attack)] :free) true)
-              (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units cavern-map false)
-              ))
-          (let [next-move (choose-next-move-destination unit not-dead cavern-map)
-                current-loc [(:y unit) (:x unit)]]
-            (println "Moving from" current-loc "To" next-move)
-            (if-not (nil? next-move)
-              (do
-                (move-unit unit next-move)
-                (let [to-attack (enemy-to-attack unit cavern-map)]
-                  (if-not (nil? to-attack)
-                    (let [to-attack (attack unit to-attack)
-                          remaining-not-dead (filter not-dead? remaining-units)
-                          not-dead-units (filter not-dead? not-dead)]
-                      (println "Attacked" (:id to-attack) "HP" (:hp to-attack))
-                      (if (dead? to-attack)
-                        (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units (assoc-in (update-map-after-move unit current-loc cavern-map) [(:y to-attack) (:x to-attack)] :free) true)
-                        (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units (update-map-after-move unit current-loc cavern-map) false)
-                        ))
-                    (recur (first remaining-units) (rest remaining-units) not-dead (update-map-after-move unit current-loc cavern-map) false)
-                    ))
-                )
-              (recur (first remaining-units) (rest remaining-units) not-dead cavern-map false)))))
-      [cavern-map latest-was-a-death])))
+      (if (has-alive-enemies unit units)
+        (let [to-attack (enemy-to-attack unit cavern-map)]
+          ;(println "Can attack" to-attack)
+          (if-not (nil? to-attack)
+            (let [to-attack (attack unit to-attack)
+                  remaining-not-dead (filter not-dead? remaining-units)
+                  not-dead-units (filter not-dead? not-dead)]
+              (log-message "Unit" (:id unit) "attacked" (:id to-attack) "HP" (:hp to-attack))
+              (log-message (:id unit) remaining-not-dead)
+              (if (dead? to-attack)
+                (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units (assoc-in cavern-map [(:y to-attack) (:x to-attack)] :free))
+                (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units cavern-map)
+                ))
+            (let [next-move (choose-next-move-destination unit not-dead cavern-map)
+                  current-loc [(:y unit) (:x unit)]]
+              ;(println "Moving from" current-loc "To" next-move)
+              (if-not (nil? next-move)
+                (do
+                  (move-unit unit next-move)
+                  (let [to-attack (enemy-to-attack unit cavern-map)]
+                    (if-not (nil? to-attack)
+                      (let [to-attack (attack unit to-attack)
+                            remaining-not-dead (filter not-dead? remaining-units)
+                            not-dead-units (filter not-dead? not-dead)]
+                        ;(println "Attacked" (:id to-attack) "HP" (:hp to-attack))
+                        (log-message (:id unit) remaining-not-dead)
+                        (if (dead? to-attack)
+                          (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units (assoc-in (update-map-after-move unit current-loc cavern-map) [(:y to-attack) (:x to-attack)] :free))
+                          (recur (first remaining-not-dead) (rest remaining-not-dead) not-dead-units (update-map-after-move unit current-loc cavern-map))
+                          ))
+                      (recur (first remaining-units) (rest remaining-units) not-dead (update-map-after-move unit current-loc cavern-map))
+                      ))
+                  )
+                (recur (first remaining-units) (rest remaining-units) not-dead cavern-map)))))
+        [cavern-map :victory-turns-left
+         ])
+      [cavern-map (if (has-alive-enemies (first units) units) :all-turns-taken :victory-all-turns-taken ) ])))
 
 (defn print-map [cavern-map]
   (doseq [row cavern-map]
-    (println (apply str (map (fn [cell]
+    (log-message (apply str (map (fn [cell]
                                (cond
                                      (= :wall cell) "#"
                                      (= :free cell) "."
@@ -232,25 +245,32 @@
 (defn print-hp-left [units]
   (doseq [unit (filter not-dead? units)]
     (let [type (if (= :elf (:type unit)) "E" "G")]
-      (println type "HP" (:hp unit) "Y,X" (:y unit) (:x unit)))))
+      (log-message type "(" (:id unit) ")" "HP" (:hp unit) "Y,X" (:y unit) (:x unit)))))
+
+(defn report-victory [rounds hp last-turn-type]
+  (let [score (* rounds hp)]
+    (log-message "Last was a" last-turn-type)
+    (log-message "Someone won! Rounds" rounds "HP left" hp "Outcome" score)
+    score))
 
 (defn play-until-victory [units cavern-map]
   (loop [cavern-map cavern-map
          units units
-         rounds 0
-         latest-was-a-death false]
-    (println "Round" rounds)
+         rounds 1]
+    (log-message "After" rounds)
     (print-map cavern-map)
     (print-hp-left units)
-    (if-not (or (elves-won units) (goblins-won units))
-      (let [[cavern-map latest-was-a-death] (play-round (sort-units-by-reading-order units) cavern-map)]
-        (recur cavern-map (sort-units-by-reading-order (filter not-dead? units)) (inc rounds) latest-was-a-death))
-      (let [rounds (if latest-was-a-death rounds (dec rounds))
-            score (* rounds (hp-left units))]
-        (println "Someone won! Rounds" rounds "HP left" (hp-left units) "Outcome" score)
-        score))))
+    (let [[cavern-map latest-turn-end-type] (play-round (sort-units-by-reading-order units) cavern-map)
+          ]
+      ;(println rounds)
+      (case latest-turn-end-type
+        :all-turns-taken (recur cavern-map (sort-units-by-reading-order (filter not-dead? units)) (inc rounds))
+        :victory-turns-left (report-victory (dec rounds) (hp-left units) latest-turn-end-type)
+        :victory-all-turns-taken (report-victory rounds (hp-left units) latest-turn-end-type))
+      )))
 
 (defn part-1 []
-  (let [[cavern-map units] (parse-map-and-units "day15.txt")]
+  (reset! logging-enabled true)
+  (let [[cavern-map units] (parse-map-and-units "day15-example16.txt")]
     ;(choose-next-move-destination (nth units 0) units cavern-map)
     (play-until-victory units cavern-map)))

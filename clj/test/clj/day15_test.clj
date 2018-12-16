@@ -2,6 +2,8 @@
   (:require [clojure.test :refer :all]
             [clj.day15 :refer :all]))
 
+(reset! logging-enabled false)
+
 (deftest choose-next-move-destination-test
   (testing "finds available path"
     (let [[cavern-map units] (parse-map-and-units "day15-example2.txt")]
@@ -40,6 +42,8 @@
       (is (= 28944 (play-until-victory units cavern-map))))
     (let [[cavern-map units] (parse-map-and-units "day15-example10.txt")]
       (is (= 18740 (play-until-victory units cavern-map))))
+    (let [[cavern-map units] (parse-map-and-units "day15-example12.txt")]
+      (is (= 13987 (play-until-victory units cavern-map))))
     ))
 
 (deftest choose-next-move-destination-test-2
@@ -51,6 +55,9 @@
     (let [[cavern-map units] (parse-map-and-units "day15-example15.txt")]
       (is (= [2 2] (choose-next-move-destination (first units) units cavern-map)))
       (is (= [2 4] (choose-next-move-destination (last units) units cavern-map)))
+      )
+    (let [[cavern-map units] (parse-map-and-units "day15-example16.txt")]
+      (is (= [2 3] (choose-next-move-destination (first units) units cavern-map)))
       )
     ))
 
