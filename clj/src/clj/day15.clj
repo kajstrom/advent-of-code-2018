@@ -51,6 +51,16 @@
                                    (if (= :free cell)
                                      coords))) adjacent-cells))))
 
+(defn find-free-cells-of-orig-next-to [orig [y x] cavern-map]
+  (let [adjacent-cells (list-adjacent-cells [y x])]
+    (filter #(not= nil %) (map (fn [coords]
+                                 (let [cell (get-in cavern-map coords)]
+                                   (if (= orig coords)
+                                     coords
+                                     (if (= :free cell)
+                                       coords))
+                                   )) adjacent-cells))))
+
 (defn filter-equal-or-less-cells [new-cells path]
   (filter (fn [[y x c]]
             (every? #(let [[p-y p-x p-c] %]
@@ -74,11 +84,11 @@
         (if-not (= idx (count path))
           (let [counter (inc counter)
                 current (get path idx)
-                adjacent-cells (find-free-cells-next-to (take 2 current) cavern-map)
+                adjacent-cells (find-free-cells-of-orig-next-to orig (take 2 current) cavern-map)
                 adjacent-with-count (map #(conj % counter) adjacent-cells)
                 cells-to-visit (filter-equal-or-less-cells adjacent-with-count path)
                 ]
-            ;(println current)
+            ;(println current adjacent-cells)
             (if (empty? cells-to-visit)
               (recur counter path (inc idx))
               (if (some #(= orig (vec (take 2 %))) cells-to-visit)
@@ -96,13 +106,27 @@
         cells-in-range-of-targets (flatten-1 (map #(find-free-cells-next-to [(:y %) (:x %)] cavern-map) targets))
         cells-next-to-unit (find-free-cells-next-to [(:y unit) (:x unit)] cavern-map)]
     ;(println cells-in-range-of-targets)
-    (->> (map (fn [cell]
-                (pmap #(shortest-path-to cell % cavern-map) cells-in-range-of-targets)
-                ) cells-next-to-unit)
-         (map (fn [cell-paths]
-                (filter #(not= nil %) cell-paths)))
-         (filter #(not (empty? %))))
+    (->> (pmap #(shortest-path-to [(:y unit) (:x unit)] % cavern-map) cells-in-range-of-targets)
+         (filter #(not= nil %))
+         ;(filter #(not (empty? %)))
+         )
     ))
+
+(defn valid-path-from [path]
+  (loop [current (last path)
+         remaining (drop-last path)
+         actual-path [current]]
+    (if (nil? current)
+      (do
+        ;(println actual-path)
+        ;(count actual-path)
+        (vec (reverse actual-path))
+        )
+      (let [neighbor (first (filter #(in? (list-adjacent-cells (vec (take 2 current))) (vec (take 2 %))) remaining))
+            ]
+        (if (nil? neighbor)
+          (recur nil remaining actual-path)
+          (recur neighbor (filter #(< (last %) (last neighbor)) remaining) (conj actual-path neighbor)))))))
 
 (defn path-length [path]
   (loop [current (last path)
@@ -112,7 +136,7 @@
       (do
         ;(println actual-path)
         (count actual-path))
-      (let [neighbor (first (filter #(= 1 (manhattan-distance (vec (take 2 current)) (vec (take 2 %)))) remaining))
+      (let [neighbor (first (filter #(in? (list-adjacent-cells (vec (take 2 current))) (vec (take 2 %))) remaining))
             ]
         (if (nil? neighbor)
           (recur nil remaining actual-path)
@@ -125,21 +149,25 @@
            paths-cell)
       (map first)))
 
-(defn shortest-path [paths]
+(defn shortest-paths [paths]
   ;(println paths)
   (let [shortest-length (apply min (pmap path-length paths))]
-    ;(println shortest-length)
-    (->> (filter #(= shortest-length (-> % path-length)) paths)
-         first)))
+    (println "Shortest path length" shortest-length)
+    (filter #(= shortest-length (-> % path-length)) paths)
+
+    ))
 
 (defn choose-next-move-destination [unit units cavern-map]
   (let [cells-next-to-unit (find-free-cells-next-to [(:y unit) (:x unit)] cavern-map)
         available-paths (available-in-range-paths unit units cavern-map)
+        valid-available-paths (pmap valid-path-from available-paths)
         ]
-    ;(println (count available-paths))
-    ;(println (shortest-path (shortest-paths-per-cell available-paths)))
-    (if-not (empty? available-paths)
-      (->> (shortest-path (shortest-paths-per-cell available-paths)) last (take 2) vec))
+    ;(println "Available path cnt" available-paths)
+    (if-not (empty? valid-available-paths)
+      (let [shortest (sort-by (juxt first first last) (shortest-paths valid-available-paths))]
+        (println "Shortest paths" shortest)
+        (->> shortest first drop-last last (take 2) vec))
+      )
     ))
 
 (defn enemy-to-attack [unit cavern-map]
@@ -271,6 +299,6 @@
 
 (defn part-1 []
   (reset! logging-enabled true)
-  (let [[cavern-map units] (parse-map-and-units "day15-example16.txt")]
+  (let [[cavern-map units] (parse-map-and-units "day15.txt")]
     ;(choose-next-move-destination (nth units 0) units cavern-map)
     (play-until-victory units cavern-map)))
