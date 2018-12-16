@@ -7,10 +7,12 @@
     (apply println (conj args m ))))
 
 (def unit-id-counter (atom 0))
+(def elf-attack-power (atom 4))
 (defn make-unit [type x y]
-  (let [id @unit-id-counter]
+  (let [id @unit-id-counter
+        attack-power (if (= :elf type) @elf-attack-power 3)]
     (swap! unit-id-counter inc)
-    (transient {:type type :hp 200 :ap 3 :x x :y y :id id})))
+    (transient {:type type :hp 200 :ap attack-power :x x :y y :id id})))
 
 (def make-goblin (partial make-unit :goblin))
 (def make-elf (partial make-unit :elf))
@@ -152,7 +154,7 @@
 (defn shortest-paths [paths]
   ;(println paths)
   (let [shortest-length (apply min (pmap path-length paths))]
-    (println "Shortest path length" shortest-length)
+    ;(println "Shortest path length" shortest-length)
     (filter #(= shortest-length (-> % path-length)) paths)
 
     ))
@@ -165,7 +167,7 @@
     ;(println "Available path cnt" available-paths)
     (if-not (empty? valid-available-paths)
       (let [shortest (sort-by (juxt first first last) (shortest-paths valid-available-paths))]
-        (println "Shortest paths" shortest)
+        ;(println "Shortest paths" shortest)
         (->> shortest first drop-last last (take 2) vec))
       )
     ))
@@ -275,13 +277,29 @@
     (let [type (if (= :elf (:type unit)) "E" "G")]
       (log-message type "(" (:id unit) ")" "HP" (:hp unit) "Y,X" (:y unit) (:x unit)))))
 
-(defn report-victory [rounds hp last-turn-type]
+(defn report-victory [rounds hp last-turn-type units]
   (let [score (* rounds hp)]
     (log-message "Last was a" last-turn-type)
-    (log-message "Someone won! Rounds" rounds "HP left" hp "Outcome" score)
+    (if (elves-won units) (log-message "Elves won! Casualties" (count (filter dead? (filter #(= :elf (:type %)) units))))
+                          (log-message "Goblins won! Casualties" (count (filter dead? (filter #(= :goblin (:type %)) units)))))
+    (log-message "Rounds" rounds "HP left" hp "Outcome" score)
     score))
 
-(defn play-until-victory [units cavern-map]
+(defn report-victory-stats [orig-units rounds hp last-turn-type units]
+  (let [score (* rounds hp)
+        outcome (if (elves-won units) :elves-won :goblins-won)
+        elf-casualties (count (filter dead? (filter #(= :elf (:type %)) orig-units)))]
+    (log-message "Last was a" last-turn-type)
+    (if (elves-won units) (log-message "Elves won! Casualties" elf-casualties)
+                          (log-message "Goblins won! Casualties" (count (filter dead? (filter #(= :goblin (:type %)) orig-units)))))
+    (log-message "Rounds" rounds "HP left" hp "Outcome" score)
+    {
+     :score score
+     :outcome outcome
+     :elf-casualties elf-casualties
+     }))
+
+(defn play-until-victory [report-fn units cavern-map]
   (loop [cavern-map cavern-map
          units units
          rounds 1]
@@ -293,12 +311,27 @@
       ;(println rounds)
       (case latest-turn-end-type
         :all-turns-taken (recur cavern-map (sort-units-by-reading-order (filter not-dead? units)) (inc rounds))
-        :victory-turns-left (report-victory (dec rounds) (hp-left units) latest-turn-end-type)
-        :victory-all-turns-taken (report-victory rounds (hp-left units) latest-turn-end-type))
+        :victory-turns-left (report-fn (dec rounds) (hp-left units) latest-turn-end-type units)
+        :victory-all-turns-taken (report-fn rounds (hp-left units) latest-turn-end-type units))
       )))
 
 (defn part-1 []
   (reset! logging-enabled true)
+  (reset! elf-attack-power 3)
   (let [[cavern-map units] (parse-map-and-units "day15.txt")]
     ;(choose-next-move-destination (nth units 0) units cavern-map)
-    (play-until-victory units cavern-map)))
+    (play-until-victory report-victory units cavern-map)))
+
+(defn part-2 []
+  (reset! logging-enabled false)
+  (loop [score {:outcome :goblins-won :elf-casualties 1000}
+         attack-power 4]
+    ;(println score (and (= :elves-won (:outcome score)) (= 0 (:elf-casualties score))))
+    (reset! elf-attack-power attack-power)
+    (println "Attack power" attack-power)
+    (if (and (= :elves-won (:outcome score)) (= 0 (:elf-casualties score)))
+      score
+      (let [[cavern-map units] (parse-map-and-units "day15.txt")
+            score (play-until-victory (partial report-victory-stats units) units cavern-map)]
+        (recur score (inc attack-power)))
+      )))
