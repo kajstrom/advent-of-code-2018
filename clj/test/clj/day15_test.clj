@@ -30,20 +30,21 @@
 
 (deftest play-until-victory-test
   (testing "score calculation"
+    (reset! elf-attack-power 3)
     (let [[cavern-map units] (parse-map-and-units "day15-example6.txt")]
-      (is (= 27730 (play-until-victory units cavern-map))))
+      (is (= 27730 (play-until-victory report-victory units cavern-map))))
     (let [[cavern-map units] (parse-map-and-units "day15-example7.txt")]
-      (is (= 36334 (play-until-victory units cavern-map))))
+      (is (= 36334 (play-until-victory report-victory units cavern-map))))
     (let [[cavern-map units] (parse-map-and-units "day15-example13.txt")]
-      (is (= 39514 (play-until-victory units cavern-map))))
+      (is (= 39514 (play-until-victory report-victory units cavern-map))))
     (let [[cavern-map units] (parse-map-and-units "day15-example8.txt")]
-      (is (= 27755 (play-until-victory units cavern-map))))
+      (is (= 27755 (play-until-victory report-victory units cavern-map))))
     (let [[cavern-map units] (parse-map-and-units "day15-example9.txt")]
-      (is (= 28944 (play-until-victory units cavern-map))))
+      (is (= 28944 (play-until-victory report-victory units cavern-map))))
     (let [[cavern-map units] (parse-map-and-units "day15-example10.txt")]
-      (is (= 18740 (play-until-victory units cavern-map))))
+      (is (= 18740 (play-until-victory report-victory units cavern-map))))
     (let [[cavern-map units] (parse-map-and-units "day15-example12.txt")]
-      (is (= 13987 (play-until-victory units cavern-map))))
+      (is (= 13987 (play-until-victory report-victory units cavern-map))))
     ))
 
 (deftest choose-next-move-destination-test-2
