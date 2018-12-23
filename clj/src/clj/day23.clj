@@ -11,14 +11,11 @@
   (->> (split-lines-from-file file)
       (map parse-nanobot)))
 
-(defn manhattan-distance-z [[a b e] [c d f]]
-  (Math/abs (+ (Math/abs (- a c)) (Math/abs (- b d)) (Math/abs (- e f)))))
-
 (defn nanobots-in-range-of [largest nanobots]
   (let [x (:x largest)
         y (:y largest)
         z (:z largest)]
-    (filter #(>= (:range largest) (manhattan-distance-z [x y z] [(:x %) (:y %) (:z %)])) nanobots)))
+    (filter #(>= (:range largest) (manhattan-distance [x y z] [(:x %) (:y %) (:z %)])) nanobots)))
 
 (defn nanobot-with-largest-range [nanobots]
   (reduce (fn [carry nb]
@@ -32,11 +29,11 @@
     (count (nanobots-in-range-of largest-range nanobots))))
 
 ; !!!!NOTE!!!!! Part 2 solution is based on https://www.reddit.com/r/adventofcode/comments/a8s17l/2018_day_23_solutions/ecddus1
-; Used this as a learning experience as I did really know even where to start with solving this.
+; Used this as a learning experience as I didn't really know even where to start with solving this.
 
 (defn nanobots-in-range-of-pos [[x y z] nanobots]
   (let []
-    (filter #(>= (:range %) (manhattan-distance-z [x y z] [(:x %) (:y %) (:z %)])) nanobots)))
+    (filter #(>= (:range %) (manhattan-distance [x y z] [(:x %) (:y %) (:z %)])) nanobots)))
 
 (defn make-search-distance [min-x max-x]
   (loop [distance 1]
@@ -66,7 +63,7 @@
         results-with-max (filter #(= max-bots-in-range (last %)) results)]
     (if (> (count results-with-max) 1)
       (let [best-distance (reduce (fn [carry res]
-                                    (if (< (manhattan-distance-z [0 0 0] (first res)) (manhattan-distance-z [0 0 0] (first carry)))
+                                    (if (< (manhattan-distance [0 0 0] (first res)) (manhattan-distance [0 0 0] (first carry)))
                                       res
                                       carry)) results)]
         best-distance)
@@ -98,9 +95,9 @@
                 [x-coords y-coords z-coords] (new-coords-by-distance new-dist current-most-targets)]
             (if (> cnt current-target-cnt)
               (let [[x-coords y-coords z-coords] (new-coords-by-distance new-dist coords)]
-                (recur coords cnt (manhattan-distance-z [0 0 0] coords) new-dist x-coords y-coords z-coords))
+                (recur coords cnt (manhattan-distance [0 0 0] coords) new-dist x-coords y-coords z-coords))
               (if (>= cnt current-target-cnt)
-                (let [new-dist-to-0 (manhattan-distance-z [0 0 0] coords)]
+                (let [new-dist-to-0 (manhattan-distance [0 0 0] coords)]
                   (if (< new-dist-to-0 current-dist-to-0)
                     (let [[x-coords y-coords z-coords] (new-coords-by-distance new-dist coords)]
                       (recur coords cnt new-dist-to-0 new-dist x-coords y-coords z-coords))
@@ -123,12 +120,12 @@
         (doseq [z (range min-z (inc max-z))]
           (let [targets-in-range (nanobots-in-range-of-pos [x y z] nanobots)]
             (if (= max-targets (count targets-in-range))
-              (if (< (manhattan-distance-z [0 0 0] [x y z]) (manhattan-distance-z [0 0 0] @closest-to-0))
+              (if (< (manhattan-distance [0 0 0] [x y z]) (manhattan-distance [0 0 0] @closest-to-0))
                 (reset! closest-to-0 [x y z])))))))
     @closest-to-0))
 
 (defn part-2 []
   (let [nanobots (parse-nanobots "day23.txt")
         closest (coords-in-range-of-most-nanobots nanobots)]
-    (manhattan-distance-z [0 0 0] (scan-closest (first closest) (last closest) nanobots))
+    (manhattan-distance [0 0 0] (scan-closest (first closest) (last closest) nanobots))
     ))

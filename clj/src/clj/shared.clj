@@ -21,8 +21,8 @@
 
 (defn index-of [coll x] (.indexOf coll x))
 
-(defn manhattan-distance [[a b] [c d]]
-  (Math/abs (+ (Math/abs (- a c)) (Math/abs (- b d)))))
+(defn manhattan-distance [[a b c] [d e f]]
+  (Math/abs (+ (Math/abs (- a d)) (Math/abs (- b e)) (if-not (nil? c) (Math/abs (- c f)) 0))))
 
 (defn flatten-1 [coll]
   (mapcat identity coll))
