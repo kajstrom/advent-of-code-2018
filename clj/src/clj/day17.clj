@@ -151,3 +151,21 @@
     ;(output-area area "d17.txt")
     (-> (filter #(or (= % :water-still) (= % :water-flow)) (flatten (drop min-y (map persistent! (persistent! area)))))
         count)))
+
+(defn part-2 []
+  (let [clay-spots (parse-input "day17.txt")
+        max-y (apply max (flatten (map :y clay-spots)))
+        area (make-area max-y)]
+    (assoc! (get area 0) 500 :spring)
+    (populate-clay clay-spots area)
+    (flow-water area max-y)
+    (-> (filter #(= % :water-still) (flatten (map persistent! (persistent! area))))
+        count)))
+
+(defn time-results []
+  (time
+    (do
+      (println "Part 1")
+      (time (part-1))
+      (println "Part 2")
+      (time (part-2)))))
