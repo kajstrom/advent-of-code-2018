@@ -1,8 +1,8 @@
 const cave = [];
 
-const depth = 510;
-const target = {x: 10, y: 10};
-const bounds = {x: target.x + 10, y: target.y + 10}
+const depth = 11541;
+const target = {x: 14, y: 778};
+const bounds = {x: target.x + 50, y: target.y + 50}
 const types = ["rocky", "wet", "narrow"];
 
 const iRange = (to) => {
@@ -72,8 +72,10 @@ const riskLevel = () => {
   return riskLevel;
 }
 
+setupCave(target.x, target.y);
+console.log("Part 1", riskLevel());
+
 setupCave(bounds.x, bounds.y);
-console.log(riskLevel());
 
 // PART 2
 
@@ -90,7 +92,8 @@ const createNodes = () => {
       const allowedEq = typeEquipment[cell.type];
 
       allowedEq.forEach(equipment => {
-        nodes.push({x: cell.x, y: cell.y, type: cell.type, equipment, id: `${cell.x},${cell.y}-${equipment}`})
+        nodes.push({x: cell.x, y: cell.y, type: cell.type, equipment, id: `${cell.x},${cell.y}-${equipment}`,
+      dist: Infinity, prev: null})
       });
     });
   });
@@ -132,63 +135,49 @@ const addMovesTo = node => {
   return node;
 }
 
-function smallestKey(obj, allowed) {
-  return Object.keys(obj)
-    .filter(a => allowed.includes(a))
-    .reduce((a, b) => obj[a] < obj[b] ? a : b);
-}
-
-function dijk(nodes, source) {
+function dijkstra(nodes, source) {
   let queue = [...nodes];
   
   console.log(source.id);
 
-  const dist = {};
-  const prev = {};
-
-  nodes.forEach(node => {
-    dist[node.id] = Infinity;
-    prev[node.id] = null;
-  });
-
-  dist[source.id] = 0;
+  source.dist = 0;
 
   while (queue.length !== 0) {
-    const queueKeys = queue.map(q => q.id);
-    console.time("smallestKey");
-    const nextId = smallestKey(dist, queueKeys);
-    console.timeEnd("smallestKey");
-
-    console.time("splice");
-    const idx = queue.findIndex(q => q.id === nextId); // Find next item
-    const current = queue[idx];
-    //queue = queue.filter(q => q.id !== nextId); //Remove from q
+    const current = queue.reduce((a, b) => a.dist < b.dist ? a : b);
+    const idx = queue.indexOf(current);
     queue.splice(idx, 1);
-    //console.log(queue.length);
-    console.timeEnd("splice");
 
-    if (queue.length % 100 === 0) {
+    if (queue.length % 1000 === 0) {
       console.log("Remaining", queue.length);
     }
 
-    const currentCost = dist[current.id];
+    const currentCost = current.dist;
     current.moves.forEach(([node, cost]) => {
       const alt = currentCost + cost;
 
-      if (alt < dist[node.id]) {
-        dist[node.id] = alt;
-        prev[node.id] = current.id;
+      if (alt < node.dist) {
+        node.dist = alt;
+        node.prev = current.id;
       }
     });
   }
 
-  return [dist, prev];
+  return nodes;
 }
 
-const nodesWithMoves = nodes.map(addMovesTo);
+const nodesWithMoves = []
 
-//console.log(nodesWithMoves.find(n => n.id === "9,10-neither").moves)
+const nodeCnt = nodes.length;
 
-const [dists, prevs] = dijk(nodesWithMoves, nodesWithMoves[1])
+for(i = 0; i < nodeCnt; i++) {
+  if (i % 1000 ===0) {
+    console.log("Moves mapped", i);
+  }
 
-console.log(dists[`${target.x},${target.y}-torch`], dists[`${target.x},${target.y}-climbing`] + 7);
+  nodesWithMoves.push(addMovesTo(nodes[i]));
+}
+
+const alteredNodes = dijkstra(nodesWithMoves, nodesWithMoves[1])
+
+console.log("Part 2", alteredNodes.find(n => n.id === `${target.x},${target.y}-torch`).dist,
+alteredNodes.find(n => n.id === `${target.x},${target.y}-climbing`).dist + 7);
