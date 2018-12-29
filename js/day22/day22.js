@@ -2,7 +2,7 @@ const cave = [];
 
 const depth = 11541;
 const target = {x: 14, y: 778};
-const bounds = {x: target.x + 50, y: target.y + 50}
+const bounds = {x: target.x + 13, y: target.y + 0}
 const types = ["rocky", "wet", "narrow"];
 
 const iRange = (to) => {
@@ -147,10 +147,6 @@ function dijkstra(nodes, source) {
     const idx = queue.indexOf(current);
     queue.splice(idx, 1);
 
-    if (queue.length % 1000 === 0) {
-      console.log("Remaining", queue.length);
-    }
-
     const currentCost = current.dist;
     current.moves.forEach(([node, cost]) => {
       const alt = currentCost + cost;
@@ -177,7 +173,9 @@ for(i = 0; i < nodeCnt; i++) {
   nodesWithMoves.push(addMovesTo(nodes[i]));
 }
 
-const alteredNodes = dijkstra(nodesWithMoves, nodesWithMoves[1])
+console.time("Dijkstra");
+const alteredNodes = dijkstra(nodesWithMoves, nodesWithMoves[1]);
+console.timeEnd("Dijkstra");
 
 console.log("Part 2", alteredNodes.find(n => n.id === `${target.x},${target.y}-torch`).dist,
 alteredNodes.find(n => n.id === `${target.x},${target.y}-climbing`).dist + 7);
