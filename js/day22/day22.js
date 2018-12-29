@@ -166,10 +166,6 @@ const nodesWithMoves = []
 const nodeCnt = nodes.length;
 
 for(i = 0; i < nodeCnt; i++) {
-  if (i % 1000 ===0) {
-    console.log("Moves mapped", i);
-  }
-
   nodesWithMoves.push(addMovesTo(nodes[i]));
 }
 

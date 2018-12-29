@@ -31,10 +31,10 @@
         erosion-level (mod (+ geo-index depth) 20183)]
     (make-region x y geo-index erosion-level)))
 
-(defn create-rectangle-row [y depth regions target]
+(defn create-rectangle-row [y depth regions target bounds]
   (let [row (transient [])
         regions (conj! regions row)
-        x-indexes (range 0 (inc (first target)))]
+        x-indexes (range 0 (inc (first bounds)))]
     (loop [x-indexes x-indexes]
       (if (empty? x-indexes)
         regions
@@ -44,13 +44,13 @@
           )))
     ))
 
-(defn create-rectangle-until-target [depth target]
+(defn create-rectangle-until-target [depth target bounds]
   (let [regions (transient [])]
     (loop [y 0]
-      (if (> y (last target))
+      (if (> y (last bounds))
         regions
         (do
-          (create-rectangle-row y depth regions target)
+          (create-rectangle-row y depth regions target bounds)
           (recur (inc y)))))))
 
 (def type-to-risk {
@@ -63,7 +63,7 @@
   (apply + (map #(% type-to-risk) (map :type (flatten region)))))
 
 (defn part-1 []
-  (let [regions (create-rectangle-until-target 11541 [14 778])
+  (let [regions (create-rectangle-until-target 11541 [14 778] [14 778])
         p-regions (map persistent! (persistent! regions))]
     (calculate-region-risk-level p-regions)))
 
@@ -78,18 +78,6 @@
   (let [region-allowed-eq ((:type region) type-allowed-eq)]
     (some #(in? region-allowed-eq %) can-change-to-eqs)))
 
-(defn move-cost [equipment region]
-  (let [region-allowed-eq ((:type region) type-allowed-eq)]
-    (if (in? region-allowed-eq equipment)
-      1
-      7)))
-
-(defn create-duration-starting-state [starting-node nodes]
-  (let [default [Integer/MAX_VALUE nil]]
-    (-> (into {} (for [node nodes] [(:id node) default]))
-        (assoc (:id starting-node) [1 nil])
-        transient)))
-
 (defn possible-moves-from [[x y] regions]
   (let [can-change-to ((:type (get-in regions [y x])) type-allowed-eq)
         up (get-in regions [(dec y) x])
@@ -99,23 +87,16 @@
         moves (filter #(not= nil %) [up down left right])]
     (filter #(can-move-to? % can-change-to) moves)))
 
-(defn update-durations [durations current-node]
+(defn update-durations [current-node]
   (let [current-identifier (:id current-node)
-        current-cost (-> (get durations current-identifier) first)]
+        current-cost (:dist current-node)]
     (doseq [move (:moves current-node)]
-      (if (nil? move)
-        durations
-        (let [[node cost] move
-              point (:id node)
-              [point-current-cost] (get durations point)
-              cost (+ current-cost cost)]
-          (if (> point-current-cost cost)
-            (assoc! durations point [cost current-identifier])))))))
-
-(defn cheapest-non-visited [moves visited]
-  (let [not-visited (filter #(not-in? visited (first %)) moves)
-        min-cost (apply min Integer/MAX_VALUE (map last not-visited))]
-    (first (filter #(= min-cost (last %)) not-visited))))
+      (let [[node cost] move
+            point-current-cost (:dist node)
+            new-cost (+ current-cost cost)]
+        (if (> point-current-cost new-cost)
+          (assoc! node :dist new-cost :prev current-identifier))
+        ))))
 
 (defn create-region-nodes [region]
   (let [x (:x region)
@@ -123,15 +104,16 @@
         type (:type region)
         type-eq (type type-allowed-eq)]
     (for [eq type-eq]
-      (transient {:coords [x y] :type type :equipment eq :moves [] :visited false
-                  :id [x y eq]}))))
+      (transient {:coords [x y] :type type :equipment eq :moves [] :dist Integer/MAX_VALUE, :prev nil
+                  :id (str x "," y eq)}))))
 
 (defn find-nodes-for-coords [coords nodes]
   (filter #(= coords (:coords %)) nodes))
 
-(defn region-to-nodes [regions specials]
+(defn region-to-nodes [regions]
   (let [nodes (map create-region-nodes (flatten regions))
-        nodes (filter #(not (and (in? specials (:coords %)) (not= :torch (:equipment %)))) (flatten nodes))]
+        nodes (flatten nodes)
+        ]
     (map (fn [node]
            (let [moves (possible-moves-from (:coords node) regions)]
              (assoc! node :moves (flatten-1 (for [move moves]
@@ -139,47 +121,38 @@
                                                      (for [move-node move-nodes]
                                                        (if (= (:equipment node) (:equipment move-node))
                                                          [move-node 1]
-                                                         [move-node 7]))))))
+                                                         [move-node 8]))))))
              )) nodes)))
 
-(defn select-equipment [current-equipment current-region next-region]
-  (println current-region next-region)
-  (if (in? ((:type next-region) type-allowed-eq) current-equipment)
-    current-equipment
-    (let [current-allowed ((:type current-region) type-allowed-eq)
-          next-allowed ((:type next-region) type-allowed-eq)]
-      (first (filter #(in? current-allowed %) next-allowed)))))
-
-(defn sort-queue [from queue]
-  ;(println (count queue))
-  (sort-by (juxt (comp (partial manhattan-distance (:coords from)) :coords first) last) queue)
-  )
-
 (defn find-fastest-path-to [starting-node all-nodes]
-  (let [durations-to-points (create-duration-starting-state starting-node all-nodes)]
-    (loop [current starting-node
-           queue []
+  (println "Start" (:id starting-node))
+  (assoc! starting-node :dist 0)
+  (let []
+    (loop [queue (set all-nodes)
            iter 0
            timer (System/currentTimeMillis)]
-      (when (= 0 (mod iter 100))                              ;(println (:coords current))
+      (when (= 0 (mod iter 100))
         (println iter "Remaining" (count queue) "Batch time " (- (System/currentTimeMillis) timer) "msecs")
         )
-      (if (nil? current)
-        durations-to-points
-        (let [moves (filter #(not (:visited (first %))) (:moves current))
-              queue (filter #(= false (:visited (first %))) queue)
-              queue (concat queue moves)
-              sorted-queue (sort-queue current queue)
+      (if (empty? queue)
+        nil
+        (let [current (reduce (fn [a b] (if (< (:dist a) (:dist b)) a b)) queue)
               timer (if (= 0 (mod iter 100)) (System/currentTimeMillis) timer)]
-          (update-durations durations-to-points current)
-          (assoc! current :visited true)
-          (recur (-> (first sorted-queue) first) (rest sorted-queue) (inc iter) timer))))))
+          (update-durations current)
+          (recur (disj queue current) (inc iter) timer))))))
 
+; Almost working :(
 (defn part-2 []
-  (let [t-x 10
-        t-y 10
-        regions (create-rectangle-until-target 510 [(+ 10 t-x) (+ 0 t-y)])
+  (let [t-x 14
+        t-y 778
+        regions (create-rectangle-until-target 11541 [t-x t-y] [(+ 15 t-x) (+ 0 t-y)])
         p-regions (vec (map persistent! (persistent! regions)))
-        regions-as-nodes (doall (region-to-nodes p-regions [[0 0] [t-x t-y]]))]
-    (get (find-fastest-path-to (first regions-as-nodes) regions-as-nodes) [t-x t-y :torch]))
+        regions-as-nodes (doall (region-to-nodes p-regions))
+        target1 (str t-x "," t-y :torch)
+        target2 (str t-x "," t-y :climbing)]
+    (find-fastest-path-to (second regions-as-nodes) regions-as-nodes)
+    [(:dist (first (filter #(= target1 (:id %)) regions-as-nodes)))
+     (+ 7 (:dist (first (filter #(= target2 (:id %)) regions-as-nodes))))
+     ]
+    )
   )
