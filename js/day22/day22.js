@@ -93,7 +93,9 @@ const createNodes = () => {
 
       allowedEq.forEach(equipment => {
         nodes.push({x: cell.x, y: cell.y, type: cell.type, equipment, id: `${cell.x},${cell.y}-${equipment}`,
-      dist: Infinity, prev: null})
+      dist: Infinity, prev: null, // For Dijkstra's algorithm
+      fScore: Infinity, gScore: Infinity, closed: false // For A* algorithm
+    })
       });
     });
   });
@@ -161,6 +163,51 @@ function dijkstra(nodes, source) {
   return nodes;
 }
 
+function manhattanDistance (a, b) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
+
+function aStar(start, goal) {
+  start.gScore = 0;
+  start.fScore = manhattanDistance(start, goal);
+
+  const open = [start];
+
+  // const cameFrom = {}; <- This would be needed for the full path.
+  // In this case only the cost is of interest.
+
+  while (open.length !== 0) {
+    const current = open.reduce((a, b) => a.fScore < b.fScore ? a : b);
+
+    if (current === goal) {
+      return current.fScore;
+    }
+
+    const idx = open.indexOf(current);
+    open.splice(idx, 1);
+    current.closed = true;
+
+    current.moves.forEach(([neighbor, cost]) => {
+      if(neighbor.closed) {
+        return;
+      }
+
+      tentativeGScore = current.gScore + cost;
+
+      if (open.indexOf(neighbor) == -1) {
+        //Discovered a new node
+        open.push(neighbor);
+      } else if (tentativeGScore >= neighbor.gScore) {
+        return;
+      }
+
+      // cameFrom[neighbor.id] = current;
+      neighbor.gScore = tentativeGScore;
+      neighbor.fScore = neighbor.gScore + manhattanDistance(neighbor, goal);
+    }); 
+  }
+}
+
 const nodesWithMoves = []
 
 const nodeCnt = nodes.length;
@@ -170,8 +217,22 @@ for(i = 0; i < nodeCnt; i++) {
 }
 
 console.time("Dijkstra");
-const alteredNodes = dijkstra(nodesWithMoves, nodesWithMoves[1]);
+let alteredNodes = dijkstra(nodesWithMoves, nodesWithMoves[1]);
 console.timeEnd("Dijkstra");
 
-console.log("Part 2", alteredNodes.find(n => n.id === `${target.x},${target.y}-torch`).dist,
+console.log("Part 2, Dijstra", alteredNodes.find(n => n.id === `${target.x},${target.y}-torch`).dist,
 alteredNodes.find(n => n.id === `${target.x},${target.y}-climbing`).dist + 7);
+
+console.time("A*");
+const dist1 = aStar(nodesWithMoves[1], nodesWithMoves.find(n => n.id === `${target.x},${target.y}-torch`));
+
+nodesWithMoves.forEach(n => {
+  n.closed = false;
+  n.gScore = Infinity;
+  n.fScore = Infinity;
+});
+
+const dist2 = aStar(nodesWithMoves[1], nodesWithMoves.find(n => n.id === `${target.x},${target.y}-climbing`));
+console.timeEnd("A*");
+
+console.log("Part 2, A*", dist1, dist2 + 7);
