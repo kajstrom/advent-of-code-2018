@@ -180,7 +180,7 @@ function aStar(start, goal) {
     const current = open.reduce((a, b) => a.fScore < b.fScore ? a : b);
 
     if (current === goal) {
-      return current.fScore;
+      return current.gScore;
     }
 
     const idx = open.indexOf(current);
