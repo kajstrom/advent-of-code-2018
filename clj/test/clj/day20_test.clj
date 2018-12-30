@@ -10,3 +10,7 @@
     (is (= 23 (last (shortest-path 1 "^ESSWWN(E|NNENN(EESS(WNSE|)SSS|WWWSSSSE(SW|NNNE)))$"))))
     (is (= 31 (last (shortest-path 1 "^WSSEESWWWNW(S|NENNEEEENN(ESSSSW(NWSW|SSEN)|WSWWN(E|WWS(E|SS))))$"))))
     ))
+
+(deftest old-part-1-test
+  (testing "correct solution"
+    (is (= 3512 (old-part-1)))))
