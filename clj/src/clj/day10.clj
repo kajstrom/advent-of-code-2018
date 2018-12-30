@@ -1,5 +1,5 @@
 (ns clj.day10
-  (:require [clj.shared :refer [split-lines-from-file parse-int]]
+  (:require [clj.shared :refer :all]
             [clojure.string :as s]))
 
 (defn read-points []
@@ -37,27 +37,44 @@
          points points]
     (if-not (empty? points)
       (let [pos (:pos (first points))
-            x (+ (Math/abs x-offset) (first pos))
-            y (+ (Math/abs y-offset) (second pos))
+            x (- (first pos) (Math/abs x-offset))
+            y (- (second pos) (Math/abs y-offset))
             ]
         (recur (assoc-in grid [y x] "#") (rest points)))
-      (doseq [row grid] (spit "file.txt" (str (apply str row) "\n") :append true))
-      ;(count grid)
+      (doseq [row grid] (println (apply str row)))
       )))
 
-(defn move-seconds [seconds points]
-  (dotimes [n seconds]
-    (doall (map move-point points)))
-  (let [smallest-largest (smallest-and-largest-coords points)
-        x-offset (first (first smallest-largest))
-        y-offset (first (last smallest-largest))
-        grid (make-grid (grid-size smallest-largest))]
-    (set-points-to-grid grid points x-offset y-offset)))
+(defn has-adjacent-points [points point]
+  (let [[x y] (:pos point)
+        top-left [(dec x) (dec y)]
+        top [x (dec y)]
+        top-right [(inc x) (dec y)]
+        left [(dec x) y]
+        right [(inc x) y]
+        bottom-left [(dec x) (inc y)]
+        bottom [x (inc y)]
+        bottom-right [(inc x) (inc y)]
+        adjacent [top-left top top-right left right bottom-left bottom bottom-right]]
+    (some (fn [a-point]
+            (in? (map :pos points) a-point)) adjacent)))
+
+(defn all-have-adjacent-points? [points]
+  (every? (partial has-adjacent-points points) points))
+
+(defn move-until-all-have-adjacent [points]
+  (loop [second 0]
+    (if (all-have-adjacent-points? points)
+      (let [smallest-largest (smallest-and-largest-coords points)
+            x-offset (first (first smallest-largest))
+            y-offset (first (last smallest-largest))
+            grid (make-grid (grid-size smallest-largest))]
+        (println "Seconds" second)
+        (set-points-to-grid grid points x-offset y-offset))
+      (do
+        (doall (map move-point points))
+        (recur (inc second))))))
 
 (defn part-1-and-2 []
   (let [points (read-points)]
-    ;Trial and error to find the range where the points start to come together
-    ;And then looking up the exact second manually
-    ;Couldn't think of a finer solution to find this :(
-    (move-seconds 10932 points))
-  )
+    (move-until-all-have-adjacent points)
+    ))
