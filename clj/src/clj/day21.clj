@@ -1,28 +1,34 @@
 (ns clj.day21
-  (:require [clj.day19 :refer [name-to-fn parse-instructions]]))
+  (:require [clj.day19 :refer [name-to-fn parse-instructions]]
+            [clj.shared :refer :all]))
 
-(defn collect-terminators [cnt register ip instructions]
+(defn run-until-loop [register ip instructions]
   (loop [register register
-         counter 0
-         terminators [0]
-         loop-cnt 0]
+         terminators []
+         ]
     (let [instr-idx (get register ip)
           instr (get instructions instr-idx)
           ]
-      (when (= 28 instr-idx) (println "Diff to previous" (- (nth register 4) (last terminators))))
-      (if (nil? instr)
-        terminators
-        (if-not (= (count terminators) cnt)
-          (let [
-                fn-name(first instr)
-                fn (get name-to-fn fn-name)
-                register-after (apply fn register (rest instr))
-                terminators (if (= 28 instr-idx) (conj terminators (nth register 4)) terminators)
-                ]
-            (recur (update register-after ip inc) (inc counter) terminators (inc loop-cnt))
-            )
-          terminators)))))
+      ;(when (= 28 instr-idx) (println "Loop count" loop-cnt "Prev terminator" prev-terminator))
+      (let [
+            fn-name(first instr)
+            fn (get name-to-fn fn-name)
+            register-after (apply fn register (rest instr))
+            ]
+        (if (= 28 instr-idx)
+          (let [terminator (nth register 4)]
+            (if (in? terminators terminator)
+              terminators
+              (do
+                (println "Terminator" terminator)
+                (recur (update register-after ip inc) (conj terminators terminator))))
+          )
+          (recur (update register-after ip inc) terminators))))))
 
-(defn part-1 []
-  (let [[[ip] instructions] (parse-instructions "day21.txt")]
-    (second (collect-terminators 2 [0 0 0 0 0 0] ip instructions))))
+(defn part-1-and-2 []
+  (let [[[ip] instructions] (parse-instructions "day21.txt")
+        terminators (run-until-loop [0 0 0 0 0 0] ip instructions)]
+    (println "Part 1")
+    (println (first terminators))
+    (println "Part 2")
+    (println (last terminators))))
