@@ -40,10 +40,14 @@
 
 (defn correct-ids [ids]
   (->> (reduce (fn [acc id]
-                 (assoc acc id (filter #(differs-by-one id %) ids))
-                 ) {} ids)
-       (into {} (filter #(-> % val empty? not)))
-       keys
+                 (if (= (count acc) 2)
+                   acc
+                   (let [correct-id (filter #(differs-by-one id %) ids)]
+                     (if (= 1 (count correct-id))
+                       [id (first correct-id)]
+                       acc)
+                     ))
+                 ) [] ids)
        ))
 
 (defn common-chars-in-ids [[id1 id2]]
@@ -54,7 +58,8 @@
 (defn part-2 []
   (-> (split-lines-from-file "day2.txt")
       correct-ids
-      common-chars-in-ids))
+      common-chars-in-ids
+      println))
 
 (defn time-results []
   (println "Part 1:")
