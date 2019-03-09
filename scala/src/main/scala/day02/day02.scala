@@ -23,5 +23,31 @@ object day02 extends App {
     println("Part 1", checksum)
   }
 
+  def isCorrectId(a: Array[Char], b: Array[Char]): Boolean = {
+    val combined = (a zip b)
+      .map(pair => pair._1 == pair._2)
+      .filter(!_)
 
+    combined.length == 1
+  }
+
+  time.time {
+    val correctIds = input.foldLeft(List[Array[Char]]()) {
+      (acc: List[Array[Char]], id: Array[Char]) => {
+        if (acc.length == 2) {
+          acc
+        } else {
+          val aCorrectId = input.filter(anotherId => isCorrectId(id, anotherId))
+
+          if (aCorrectId.nonEmpty) {
+            acc.::(id).::(aCorrectId.head)
+          } else {
+            acc
+          }
+        }
+      }
+    }
+
+    println("Part 2", correctIds.head.zip(correctIds(1)).filter(c => c._1 == c._2).map(_._1).mkString("") )
+  }
 }
